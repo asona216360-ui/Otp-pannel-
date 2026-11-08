@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTP Earning Panel</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#0b1020;color:white;
+ font-family:Arial,sans-serif;padding:18px
+}
+header{font-size:24px;font-weight:bold;margin:15px 0}
+.sub{color:#9ca3af;font-size:13px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:22px 0}
+.card{
+ background:#171f35;border:1px solid #293650;
+ border-radius:14px;padding:18px
+}
+.card small{color:#aab5cb}
+.value{font-size:25px;font-weight:bold;margin-top:10px}
+h3{margin-top:28px}
+.message{
+ background:#171f35;border:1px solid #293650;
+ padding:15px;border-radius:12px;margin:12px 0
+}
+button{
+ background:#2878ed;color:white;border:0;
+ border-radius:9px;padding:12px;font-weight:bold;
+ cursor:pointer
+}
+.copy{float:right}
+#status{color:#aab5cb;font-size:13px}
+</style>
+</head>
+<body>
+<header>⚡ OTP EARNING</header>
+<div class="sub">Live SMS & Earnings Dashboard</div>
+
+<div class="stats">
+ <div class="card">
+  <small>Total Messages</small>
+  <div class="value" id="total">0</div>
+ </div>
+ <div class="card">
+  <small>Total Earnings</small>
+  <div class="value" id="earn">$0.0000</div>
+ </div>
+</div>
+
+<h3>📩 Live OTP Messages</h3>
+<div id="status">Backend connection pending...</div>
+<div id="messages"></div>
+
+<script>
+async function loadMessages(){
+ const status=document.getElementById("status");
+ try{
+  const res=await fetch("/api/messages");
+  if(!res.ok) throw new Error("Backend unavailable");
+  const data=await res.json();
+  const records=data.records || [];
+  document.getElementById("total").textContent=records.length;
+
+  const earnings=records.reduce((sum,item)=>{
+   return sum+(item.status==="cleared"?
+    Number(item.payout||0):0);
+  },0);
+
+  document.getElementById("earn").textContent=
+   "$"+earnings.toFixed(4);
+
+  document.getElementById("messages").innerHTML="";
+  records.forEach(item=>{
+   const box=document.createElement("div");
+   box.className="message";
+
+   const title=document.createElement("b");
+   title.textContent=item.cli||"SMS";
+
+   const number=document.createElement("p");
+   number.textContent="Number: "+(item.number||"");
+
+   const content=document.createElement("p");
+   content.textContent=item.content||"";
+
+   const payout=document.createElement("p");
+   payout.textContent="Payout: $"+(item.payout||"0");
+
+   const state=document.createElement("p");
+   state.textContent="Status: "+(item.status||"unknown");
+
+   const copy=document.createElement("button");
+   copy.className="copy";
+   copy.textContent="Copy";
+   copy.onclick=()=>navigator.clipboard.writeText(
+    item.content||""
+   );
+
+   box.append(title,copy,number,content,payout,state);
+   document.getElementById("messages").appendChild(box);
+  });
+  status.textContent="Connected • Updated just now";
+ }catch(e){
+  status.textContent="Backend not connected yet.";
+ }
+}
+loadMessages();
+setInterval(loadMessages,15000);
+</script>
+</body>
+</html>
